@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  passwordHash    String
+  educationLevel  String?
+  course          String?
+  semester        String?
+  studyHoursPerDay Float   @default(2)
+  studyDays       String   @default("1,2,3,4,5") // weekday numbers 0=Sun
+  weekdayLimits   String   @default("{\"0\":0,\"1\":3,\"2\":3,\"3\":3,\"4\":3,\"5\":2,\"6\":4}")
+  timeSlots       String?
+  dailyTopicLimit Int      @default(3)
+  learningPrefs   String?
+  planningMode    String   @default("BALANCED") // FIXED | FLEXIBLE | BALANCED
+  onboardingDone  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subjects       Subject[]
+  topics         Topic[]
+  exams          Exam[]
+  planItems      PlanItem[]
+  notes          Note[]
+  materials      StudyMaterial[]
+  quizzes        Quiz[]
+  revisions      RevisionItem[]
+  bookmarks      CourseBookmark[]
+  sessions       Session[]
+  notifications  Notification[]
+  tutorMessages  TutorMessage[]
+  questionSets   QuestionSet[]
+  resets         PasswordReset[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  semester  String?
+  color     String   @default("mint")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chapters  Chapter[]
+  topics    Topic[]
+  exams     Exam[]
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  topics    Topic[]
+}
+
+model Topic {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  chapterId   String
+  chapter     Chapter   @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  name        String
+  difficulty  String    @default("MEDIUM") // EASY | MEDIUM | HARD
+  importance  Int       @default(3) // 1-5
+  status      String    @default("PENDING") // PENDING | COMPLETED | SKIPPED
+  estMinutes  Int       @default(45)
+  subtopics   String    @default("[]") // JSON array of strings
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  planItems   PlanItem[]
+  revisions   RevisionItem[]
+}
+
+model Exam {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title     String
+  date      String // YYYY-MM-DD
+  createdAt DateTime @default(now())
+}
+
+model PlanItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId      String?
+  topic        Topic?   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  date         String // YYYY-MM-DD
+  type         String   @default("LEARN") // LEARN | REVISE
+  minutes      Int      @default(45)
+  order        Int      @default(0)
+  status       String   @default("PENDING") // PENDING | DONE | SKIPPED
+  approved     Boolean  @default(true)
+  extra        Boolean  @default(false) // flexible-mode suggested extra topic
+  topicTitle   String?
+  chapterTitle String?
+  subjectTitle String?
+  createdAt    DateTime @default(now())
+}
+
+model StudyMaterial {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId    String
+  topicTitle String
+  content    String // JSON sections
+  createdAt  DateTime @default(now())
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId    String?
+  topicTitle String?
+  title      String
+  content    String
+  bookmarked Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Quiz {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       String // YYYY-MM-DD
+  topicIds   String   @default("[]")
+  questions  String // JSON with answers
+  answers    String   @default("{}")
+  score      Float?
+  total      Int?
+  accuracy   Float?
+  timeSec    Int?
+  completed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model RevisionItem {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  stage       Int      @default(0) // index into interval ladder
+  dueDate     String // YYYY-MM-DD
+  weak        Boolean  @default(false)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CourseBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  progress  Int      @default(0) // 0-100
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   @default("system")
+  title     String
+  body      String?
+  dedupeKey String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model TutorMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String // user | assistant
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model QuestionSet {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  params       String   @default("{}")
+  questions    String   @default("[]")
+  createdAt    DateTime @default(now())
+}
