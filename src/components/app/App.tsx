@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useApp } from "@/lib/store";
 import { api } from "@/lib/client";
+import { applyTheme, loadLocalTheme, parseThemePrefs, saveLocalTheme } from "@/lib/theme";
 import { Landing } from "@/components/app/Landing";
 import { Onboarding } from "@/components/app/Onboarding";
 import { Shell } from "@/components/app/Shell";
@@ -11,7 +12,9 @@ import { PlannerView } from "@/components/app/views/Planner";
 import { SubjectsView } from "@/components/app/views/Subjects";
 import { SyllabusView } from "@/components/app/views/Syllabus";
 import { MaterialsView } from "@/components/app/views/Materials";
+import { LibraryView } from "@/components/app/views/Library";
 import { QuestionGenView } from "@/components/app/views/Questions";
+import { QBankView } from "@/components/app/views/QBank";
 import { QuizView } from "@/components/app/views/Quiz";
 import { StreakView } from "@/components/app/views/Streaks";
 import { YouTubeView } from "@/components/app/views/YouTube";
@@ -26,12 +29,24 @@ import { GraduationCap } from "lucide-react";
 export function App() {
   const { booted, user, view, setBooted, setUser } = useApp();
 
+  // Restore the saved custom theme before anything renders its colours
+  useEffect(() => {
+    const local = loadLocalTheme();
+    if (local) applyTheme(local);
+  }, []);
+
   useEffect(() => {
     let alive = true;
-    api<{ user: null | { id: string; name: string; email: string; onboardingDone: boolean } }>("/api/auth/me")
+    api<{ user: null | { id: string; name: string; email: string; onboardingDone: boolean; themePrefs?: string | null } }>("/api/auth/me")
       .then((r) => {
         if (!alive) return;
         setUser(r.user);
+        // Profile theme wins over the local cache so the look follows the account
+        const prefs = parseThemePrefs(r.user?.themePrefs ?? null);
+        if (prefs) {
+          applyTheme(prefs);
+          saveLocalTheme(prefs);
+        }
       })
       .catch(() => undefined)
       .finally(() => {
@@ -63,7 +78,9 @@ export function App() {
       {view === "subjects" && <SubjectsView />}
       {view === "syllabus" && <SyllabusView />}
       {view === "materials" && <MaterialsView />}
+      {view === "library" && <LibraryView />}
       {view === "questions" && <QuestionGenView />}
+      {view === "qbank" && <QBankView />}
       {view === "quiz" && <QuizView />}
       {view === "streaks" && <StreakView />}
       {view === "youtube" && <YouTubeView />}

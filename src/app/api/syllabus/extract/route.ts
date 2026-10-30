@@ -61,8 +61,8 @@ Keep names faithful to the document. If the photo does not contain a syllabus, r
       if (buffer.length > 12 * 1024 * 1024) throw new Error("That PDF is too large (max 12 MB).");
       let text = "";
       try {
-        const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default as unknown as (b: Buffer) => Promise<{ text: string }>;
-        const result = await pdfParse(buffer);
+        const { extractPdfText } = await import("@/lib/pdf");
+        const result = await extractPdfText(buffer);
         text = result.text ?? "";
       } catch {
         throw new Error(

@@ -8,7 +8,9 @@ export type ViewName =
   | "subjects"
   | "syllabus"
   | "materials"
+  | "library"
   | "questions"
+  | "qbank"
   | "quiz"
   | "streaks"
   | "youtube"
@@ -32,11 +34,13 @@ type AppState = {
   view: ViewName;
   sidebarOpen: boolean;
   unread: number;
+  qbankDocFilter: string | null;
   setBooted: (v: boolean) => void;
   setUser: (u: AuthUser | null) => void;
   setView: (v: ViewName) => void;
   setSidebarOpen: (v: boolean) => void;
   setUnread: (n: number) => void;
+  setQbankDocFilter: (docId: string | null) => void;
 };
 
 export const useApp = create<AppState>((set) => ({
@@ -45,9 +49,11 @@ export const useApp = create<AppState>((set) => ({
   view: "dashboard",
   sidebarOpen: false,
   unread: 0,
+  qbankDocFilter: null,
   setBooted: (v) => set({ booted: v }),
   setUser: (u) => set({ user: u }),
   setView: (v) => set({ view: v, sidebarOpen: false }),
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
   setUnread: (n) => set({ unread: n }),
+  setQbankDocFilter: (docId) => set({ qbankDocFilter: docId }),
 }));

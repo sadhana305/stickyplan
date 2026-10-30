@@ -22,6 +22,7 @@ const ALLOWED_FIELDS = [
   "learningPrefs",
   "planningMode",
   "onboardingDone",
+  "themePrefs",
 ] as const;
 
 export async function PATCH(req: Request) {
@@ -36,6 +37,11 @@ export async function PATCH(req: Request) {
     if (typeof data.dailyTopicLimit === "number")
       data.dailyTopicLimit = Math.max(1, Math.min(12, data.dailyTopicLimit));
     if (typeof data.name === "string" && !data.name.trim()) delete data.name;
+    if ("themePrefs" in data) {
+      if (data.themePrefs === null) data.themePrefs = null;
+      else if (typeof data.themePrefs === "string" && data.themePrefs.length <= 600) data.themePrefs = data.themePrefs;
+      else delete data.themePrefs;
+    }
 
     const updated = await db.user.update({ where: { id: user.id }, data });
     const { passwordHash: _ph, ...safe } = updated;

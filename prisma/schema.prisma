@@ -40,6 +40,12 @@ model User {
   tutorMessages  TutorMessage[]
   questionSets   QuestionSet[]
   resets         PasswordReset[]
+  themePrefs     String? // JSON custom theme: {preset, primary, secondary, accent, background}
+  libraryFolders LibraryFolder[]
+  libraryDocs    LibraryDoc[]
+  libraryComments LibraryComment[]
+  qbQuestions    QbQuestion[]
+  libraryRevisions LibraryRevision[]
 }
 
 model Session {
@@ -230,4 +236,101 @@ model QuestionSet {
   params       String   @default("{}")
   questions    String   @default("[]")
   createdAt    DateTime @default(now())
+}
+
+// ── My Study Library ───────────────────────────────────────────────
+
+model LibraryFolder {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  parentId  String?
+  parent    LibraryFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  LibraryFolder[] @relation("FolderTree")
+  createdAt DateTime        @default(now())
+  docs      LibraryDoc[]
+}
+
+model LibraryDoc {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId      String?
+  folder        LibraryFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  name          String
+  kind          String           @default("PDF") // PDF | IMAGE | TEXT
+  category      String           @default("notes") // notes | question_paper | answer_sheet | textbook | typed | other
+  description   String           @default("")
+  tags          String           @default("[]") // JSON string[]
+  bookmarked    Boolean          @default(false)
+  size          Int              @default(0)
+  mime          String           @default("")
+  ext           String           @default("")
+  extractedText String           @default("")
+  textState     String           @default("PENDING") // PENDING | READY | EMPTY | FAILED
+  textNote      String           @default("")
+  aiResults     String           @default("{}") // JSON cache of AI outputs keyed by action
+  subjectName   String           @default("")
+  chapterName   String           @default("")
+  topicName     String           @default("")
+  examName      String           @default("")
+  comments      LibraryComment[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model LibraryComment {
+  id        String     @id @default(cuid())
+  docId     String
+  doc       LibraryDoc @relation(fields: [docId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page      Int?
+  quote     String     @default("") // highlighted text from the document
+  note      String
+  color     String     @default("mint") // mint | lemon | peach | sky | lavender
+  createdAt DateTime   @default(now())
+}
+
+// ── My Questions & Answers bank ────────────────────────────────────
+
+model QbQuestion {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectName  String   @default("")
+  chapterName  String   @default("")
+  topicName    String   @default("")
+  examName     String   @default("")
+  marks        Int      @default(2)
+  type         String   @default("SHORT") // MCQ | TRUE_FALSE | FILL_BLANK | MATCH | VERY_SHORT | SHORT | LONG | DESCRIPTIVE | NUMERICAL | APPLICATION
+  question     String
+  options      String? // JSON string[] for MCQ
+  answer       String? // original answer (uploaded/typed by the student)
+  answerSource String   @default("none") // none | original | ai
+  aiAnswer     String? // AI-generated draft answer — always shown separately
+  docId        String?
+  docTitle     String?
+  bookmarked   Boolean  @default(false)
+  status       String   @default("NOT_STARTED") // NOT_STARTED | LEARNING | COMPLETED | NEEDS_REVISION
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Revision schedule entries for library materials & questions (spaced repetition ladder 1/3/7/14/30)
+model LibraryRevision {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  subtitle   String   @default("")
+  docId      String?
+  questionId String?
+  stage      Int      @default(0)
+  dueDate    String // YYYY-MM-DD
+  weak       Boolean  @default(false)
+  completed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

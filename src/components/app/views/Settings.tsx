@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, ErrorState } from "@/components/app/shared";
+import { ThemeCustomiser } from "@/components/app/ThemeCustomiser";
 import { useApp } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -198,6 +199,9 @@ export function SettingsView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Customise appearance */}
+      <ThemeCustomiser />
 
       <Button className="rounded-full px-8" onClick={save} disabled={saving || studyDays.length === 0}>
         {saving ? "Saving…" : "Save settings"}

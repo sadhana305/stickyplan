@@ -10,6 +10,7 @@ export async function GET() {
       name: user.name,
       email: user.email,
       onboardingDone: user.onboardingDone,
+      themePrefs: user.themePrefs,
     },
   });
 }
